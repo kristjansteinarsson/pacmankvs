@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Pacman - KVS</title>
+   
+</head>
+<body>
+
+    <div id="lives-counter" style="position: absolute; top: 10px; left: 10px; padding: 5px; color: white;">
+        Lives: <span id="lives">3</span>
+    </div>
+
+    <div id="points-counter" style="position: absolute; top: 60px; left: 10px; padding: 5px; color: white;">
+        Points: <span id="points">0</span>
+    </div>
+    
+
+    <div id="message" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; display: none; background-color: white; padding: 2%; border-radius: 20px;">
+        Game Over!
+        <br>
+        <a href="index.html">Restart?</a>
+    </div>
+
+    <canvas id="canvas" width="1520" height="675"></canvas> 
+
+    <script src="app.js"></script>
+
+</body>
+</html>

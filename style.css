@@ -1,0 +1,21 @@
+html{
+    background-color: white;
+}
+
+canvas{
+    background-color: darkblue;
+}
+
+div{
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 40px;
+}
+
+div a{
+    display: block;
+    margin-right: auto;
+    margin-left: auto;
+    font-size: 20px;
+    padding: 2%;
+    text-align: center;
+}
