@@ -19,3 +19,7 @@ div a{
     padding: 2%;
     text-align: center;
 }
+
+div a:hover{
+    color: #ff00ee;
+}

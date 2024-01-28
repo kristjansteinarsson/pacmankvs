@@ -10,6 +10,8 @@ let ctx = canvas.getContext('2d');
 canvas.width = 1520;
 canvas.height = 675;
 
+let gameOver = false;
+
 // Líf function
 let lives = 3;
 
@@ -59,8 +61,16 @@ const pacmanShape = {
         ctx.lineTo(0, 0);
         ctx.fillStyle = "rgb(255, 255, 0)";
         ctx.fill();
+        let eyeRadius = 3;
+        const eyeX = this.radius / 3;
+        const eyeY = -this.radius / 1.5;
+        ctx.beginPath();
+        ctx.arc(eyeX, eyeY, eyeRadius, 0, Math.PI * 2);
+        ctx.fillStyle = "black";
+        ctx.fill();
 
         ctx.restore();
+
     },
     move: function () {
         let newX = this.x;
@@ -76,7 +86,6 @@ const pacmanShape = {
             newY += this.speed;
         }
 
-        // Additional boundary checks
         if (newX - this.radius >= 0 && newX + this.radius <= canvas.width) {
             this.x = newX;
         }
@@ -99,37 +108,89 @@ function createBall(color) {
         color: color,
         isTouched: false,
     };
-  }
-  
-// -- TURN INTO CLASS --
-let redBall = createBall(colorRed);
-let orangeBall = createBall(colorOrange);
-let blueBall = createBall(colorBlue);
-let pinkBall = createBall(colorPink);
+}
 
-// Dots -- TURN INTO CLASS --
+class Ghost {
+    constructor(color) {
+        this.color = color;
+        this.radius = 35;
+        this.isTouched = false;
+        this.sprite = new Image();
+        this.sprite.onload = () => {
+            console.log(`Ghost ${color} loaded.`);
+            this.spawn();
+        };
+        this.sprite.src = `ghost${color}.png`;
+    }
+
+    spawn() {
+        // Set initial random position on the canvas
+        this.x = Math.random() * (canvas.width - 2 * this.radius) + this.radius;
+        this.y = Math.random() * (canvas.height - 2 * this.radius) + this.radius;
+
+        // Set initial random velocity
+        this.vx = (Math.random() < 0.5 ? -1 : 1) * moveSpeed;
+        this.vy = (Math.random() < 0.5 ? -1 : 1) * moveSpeed;
+    }
+
+    move() {
+        // Update Ghost's position based on the velocity
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Check if Ghost hits the canvas boundaries
+        if (this.x - this.radius < 0 || this.x + this.radius > canvas.width || this.y - this.radius < 0 || this.y + this.radius > canvas.height) {
+            // Change direction randomly within a 120° angle in the opposite direction
+            const angle = Math.atan2(this.vy, this.vx);
+            const newAngle = angle + Math.PI + Math.random() * (1.5 * Math.PI / 3.5); // 120° angle in the opposite direction
+            this.vx = moveSpeed * Math.cos(newAngle);
+            this.vy = moveSpeed * Math.sin(newAngle);
+        }
+    }
+
+    draw() {
+        ctx.drawImage(this.sprite, this.x - this.radius, this.y - this.radius, 2 * this.radius, 2 * this.radius);
+    }
+}
+
+// Create Ghost objects
+const blinky = new Ghost('red');
+const pinky = new Ghost('pink');
+const inky = new Ghost('cyan');
+const clyde = new Ghost('orange');
+
+
+class Dot {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.color = colorYellow;
+        this.isCollected = false;
+    }
+}
+
+// Dots
 const dots = [];
 const dotRadius = 5;
 const maxDots = 50;
 
 // Function to create random dots
-function createRandomdots() {
-    const livesCounterHeight = document.getElementById('lives-counter').offsetHeight;
-    const pointsCounterWidth = document.getElementById('points-counter').offsetWidth;
+function createRandomDots() {
+    // Assuming these elements exist, or use static values for testing
+    const livesCounterHeight = document.getElementById('lives-counter').offsetHeight || 0;
+    const pointsCounterWidth = document.getElementById('points-counter').offsetWidth || 0;
 
     for (let i = 0; i < maxDots; i++) {
-        const dot = {
-            x: Math.random() * (canvas.width - 40) + 20,
-            y: Math.random() * (canvas.height - livesCounterHeight - 40) + 20 + livesCounterHeight,
-            color: colorYellow,
-            isCollected: false,
-        };
+        const dot = new Dot(
+            Math.random() * (canvas.width - 40) + 20,
+            Math.random() * (canvas.height - livesCounterHeight - 40) + 20 + livesCounterHeight
+        );
         dots.push(dot);
     }
 }
 
 // Function to draw dots
-function drawdots() {
+function drawDots() {
     dots.forEach((dot) => {
         if (!dot.isCollected) {
             ctx.beginPath();
@@ -141,7 +202,7 @@ function drawdots() {
 }
 
 // Function to check collision with dots
-function checkdotCollision() {
+function checkDotCollision() {
     dots.forEach((dot) => {
         if (!dot.isCollected) {
             const distance = Math.sqrt(Math.pow(pacmanShape.x - dot.x, 2) + Math.pow(pacmanShape.y - dot.y, 2));
@@ -165,137 +226,83 @@ function updatePoints(amount) {
 }
 
 // Initialize dots
-createRandomdots();
+createRandomDots();
 
 function checkWinCondition() {
     if (points === 50 || lives <= 0) {
         pacmanShape.radius = 0; 
-        redBall.radius = 0;
-        blueBall.radius = 0;
-        pinkBall.radius = 0;
-        orangeBall.radius = 0;
-        
+        pacmanShape.speed = 0;
+        pacmanShape.eyeRadius = 0;
+        gameOver = true;  // Set gameOver to true
         const winMessage = document.getElementById('message');
         winMessage.style.display = 'block';
     }
-} 
-
-let moveSpeed = 3.5;
-
-function moveBallRandomly(ball) {
-    // If the ball doesn't have a velocity, generate a random one
-    if (!ball.vx || !ball.vy) {
-        ball.vx = moveSpeed;
-        ball.vy = moveSpeed;
-    }
-
-    // Update ball's position based on the velocity
-    ball.x += ball.vx;
-    ball.y += ball.vy;
-
-    // Reflect the ball if it hits the canvas boundaries
-    if (ball.x - ball.radius < 0 || ball.x + ball.radius > canvas.width) {
-        ball.vx = -ball.vx;
-    }
-    if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
-        ball.vy = -ball.vy;
-    }
 }
 
-
-function moveBallsRandomly() {
-    moveBallRandomly(redBall);
-    moveBallRandomly(blueBall);
-    moveBallRandomly(pinkBall);
-    moveBallRandomly(orangeBall);
-
-    // Request the next animation frame
-    requestAnimationFrame(moveBallsRandomly);
-}
-
-// Start the animation loop
-moveBallsRandomly();
-
+let moveSpeed = 2;
 
 // Game loop 
 function update() {
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    blinky.move();
+    blinky.draw();
+
+    pinky.move();
+    pinky.draw();
+
+    inky.move();
+    inky.draw();
+
+    clyde.move();
+    clyde.draw();
 
     pacmanShape.move();
     pacmanShape.draw();
-  
-    drawBall(redBall);
-    drawBall(orangeBall);
-    drawBall(blueBall);
-    drawBall(pinkBall);
-  
-    drawdots();
-    checkdotCollision();
-  
-    // Check collision with all balls
-    checkBallCollision(redBall);
-    checkBallCollision(orangeBall);
-    checkBallCollision(blueBall);
-    checkBallCollision(pinkBall);
-  
+
+    drawDots();
+    checkDotCollision();
+
+    // Check collision with all Ghosts
+    checkGhostCollision(blinky);
+    checkGhostCollision(pinky);
+    checkGhostCollision(inky);
+    checkGhostCollision(clyde);
+
     checkWinCondition();
 
     // Request the next animation frame
     requestAnimationFrame(update);
 }
+// Function to check collision with a Ghost
+function checkGhostCollision(ghost) {
+    if (!gameOver) {
+        const distanceToGhost = Math.sqrt(
+            Math.pow(pacmanShape.x - ghost.x, 2) + Math.pow(pacmanShape.y - ghost.y, 2)
+        );
 
-  // Function to draw a ball
-  function drawBall(ball) {
-    ctx.beginPath();
-    ctx.fillStyle = ball.color;
-    ctx.arc(ball.x, ball.y, ball.radius, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-  
-// Function to check collision with a ball
-function checkBallCollision(ball) {
-    const distanceToBall = Math.sqrt(
-        Math.pow(pacmanShape.x - ball.x, 2) + Math.pow(pacmanShape.y - ball.y, 2)
-    );
-  
-    if (distanceToBall < pacmanShape.radius + ball.radius && !ball.isTouched) {
-        // Move all balls away from Pacman's position
-        redBall.x += (ball.x - pacmanShape.x) * 2;
-        redBall.y += (ball.y - pacmanShape.y) * 2;
-        
-        orangeBall.x += (ball.x - pacmanShape.x) * 2;
-        orangeBall.y += (ball.y - pacmanShape.y) * 2;
-        
-        blueBall.x += (ball.x - pacmanShape.x) * 2;
-        blueBall.y += (ball.y - pacmanShape.y) * 2;
-        
-        pinkBall.x += (ball.x - pacmanShape.x) * 2;
-        pinkBall.y += (ball.y - pacmanShape.y) * 2;
-    
-        // Trigger loseLife only once
-        if (!ball.isTouched) {
-            ball.isTouched = true;
-            loseLife();
+        if (distanceToGhost < pacmanShape.radius + ghost.radius && !ghost.isTouched) {
+            // Add collision handling logic for Ghosts here
+
+            // Trigger loseLife only once
+            if (!ghost.isTouched) {
+                ghost.isTouched = true;
+                loseLife();
+            }
+
+            pacmanShape.x = canvas.width / 2;
+            pacmanShape.y = canvas.height / 2;
+
+            ghost.spawn();
         }
-    
-        // Move Pacman back to the center
-        pacmanShape.x = canvas.width / 2;
-        pacmanShape.y = canvas.height / 2;
-    
-        // Move the balls to new random positions
-        redBall = createBall(colorRed);
-        orangeBall = createBall(colorOrange);
-        blueBall = createBall(colorBlue);
-        pinkBall = createBall(colorPink);
-    }
-  
-    // Reset the flag when Pacman is not colliding with the ball
-    if (distanceToBall >= pacmanShape.radius + ball.radius) {
-        ball.isTouched = false;
+
+        if (distanceToGhost >= pacmanShape.radius + ghost.radius) {
+            ghost.isTouched = false;
+        }
     }
 }
-    
+
+
 document.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowRight') {
         pacmanShape.direction = 'right';
